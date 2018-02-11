@@ -17,6 +17,9 @@ defmodule MarineForecastSkillWeb.Router do
     pipe_through :browser # Use the default browser stack
 
     get "/", PageController, :index
+    get "/privacy", PageController, :privacy
+    get "/terms", PageController, :terms
+    get "/contact", PageController, :contact
   end
 
   # Other scopes may use custom stacks.
