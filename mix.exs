@@ -19,7 +19,7 @@ defmodule MarineForecastSkill.Mixfile do
   def application do
     [
       mod: {MarineForecastSkill.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:sentry, :logger, :runtime_tools]
     ]
   end
 
@@ -37,7 +37,8 @@ defmodule MarineForecastSkill.Mixfile do
       {:phoenix_html, "~> 2.10"},
       {:phoenix_live_reload, "~> 1.0", only: :dev},
       {:gettext, "~> 0.11"},
-      {:cowboy, "~> 1.0"}
+      {:cowboy, "~> 1.0"},
+      {:sentry, "~> 6.1.0"}
     ]
   end
 end

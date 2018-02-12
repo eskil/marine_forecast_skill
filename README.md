@@ -83,8 +83,9 @@ git push -u origin master
 ```
 
 Create a heroku app and hook it up. I'm not going to go too much into
-this, since https://hexdocs.pm/phoenix/heroku.html#content is
-authorative here. But here's the unannotated steps.
+this, since [Phoenix on
+Heroku](https://hexdocs.pm/phoenix/heroku.html#content) is authorative
+here. But here's the unannotated steps.
 
 ```sh
 heroku git:remote --app <heroku-app>
@@ -373,4 +374,139 @@ index 526710e..114e8da 100644
 +    assert html_response(conn, 200) =~ "Contact"
    end
  end
+```
+
+## Let's add Sentry
+
+If you want extra error reporting etc, create a sentry org/project or
+add Sentry as an add-on. I have an sentry.io account already, so I'll
+add a sentry project, but in most cases, the
+[addon](https://elements.heroku.com/addons/sentry) is probably easier.
+
+When using your own org/project, get the DSN from Sentry, under
+Settings/Client Keys (DSN).
+
+```sh
+heroku config:set SENTRY_DSN="<sentry dsn>"
+```
+
+Add the sentry dependencies. See
+[here](https://docs.sentry.io/clients/elixir/) for the authoritative
+documentation.
+
+```diff
+diff --git a/mix.exs b/mix.exs
+index 18cc913..de30d26 100644
+--- a/mix.exs
++++ b/mix.exs
+@@ -19,7 +19,7 @@ defmodule MarineForecastSkill.Mixfile do
+   def application do
+     [
+       mod: {MarineForecastSkill.Application, []},
+-      extra_applications: [:logger, :runtime_tools]
++      extra_applications: [:sentry, :logger, :runtime_tools]
+     ]
+   end
+
+@@ -37,7 +37,8 @@ defmodule MarineForecastSkill.Mixfile do
+       {:phoenix_html, "~> 2.10"},
+       {:phoenix_live_reload, "~> 1.0", only: :dev},
+       {:gettext, "~> 0.11"},
+-      {:cowboy, "~> 1.0"}
++      {:cowboy, "~> 1.0"},
++      {:sentry, "~> 6.1.0"}
+     ]
+   end
+ end
+```
+
+Add the plug to our router, and while there, we'll add an endpoint to
+trigger a crash to "test it in production".
+
+```diff
+diff --git a/lib/marine_forecast_skill_web/router.ex b/lib/marine_forecast_skill_web/router.ex
+index c4339a1..9c258e0 100644
+--- a/lib/marine_forecast_skill_web/router.ex
++++ b/lib/marine_forecast_skill_web/router.ex
+@@ -1,5 +1,7 @@
+ defmodule MarineForecastSkillWeb.Router do
+   use MarineForecastSkillWeb, :router
++  use Plug.ErrorHandler
++  use Sentry.Plug
+
+   pipeline :browser do
+     plug :accepts, ["html"]
+@@ -20,6 +22,7 @@ defmodule MarineForecastSkillWeb.Router do
+     get "/privacy", PageController, :privacy
+     get "/terms", PageController, :terms
+     get "/contact", PageController, :contact
++    get "/test_crash", PageController, :test_crash
+   end
+
+   # Other scopes may use custom stacks.
+```
+
+And an endpoint in the controller that always crashes.
+
+```diff
+diff --git a/lib/marine_forecast_skill_web/controllers/page_controller.ex b/lib/marine_forecast_skill
+_web/controllers/page_controller.ex
+index 1b3aa15..dc15c3a 100644
+--- a/lib/marine_forecast_skill_web/controllers/page_controller.ex
++++ b/lib/marine_forecast_skill_web/controllers/page_controller.ex
+@@ -16,4 +16,10 @@ defmodule MarineForecastSkillWeb.PageController do
+   def contact(conn, _params) do
+     render conn, "contact.html"
+   end
++
++  def test_crash(conn, _params) do
++    # Intentionally crash so we can verify sentry alerts work.
++    :ok = :error
++    render conn, "index.html"
++  end
+ end
+```
+
+And no endpoint is complete without a unit-test.
+
+```diff
+diff --git a/test/marine_forecast_skill_web/controllers/page_controller_test.exs b/test/marine_forecast_skill_web/controllers/page_controller_test.exs
+index 114e8da..01613cd 100644
+--- a/test/marine_forecast_skill_web/controllers/page_controller_test.exs
++++ b/test/marine_forecast_skill_web/controllers/page_controller_test.exs
+@@ -20,4 +20,10 @@ defmodule MarineForecastSkillWeb.PageControllerTest do
+     conn = get conn, "/contact"
+     assert html_response(conn, 200) =~ "Contact"
+   end
++
++  test "GET /test_crash", %{conn: conn} do
++    assert_error_sent 500, fn ->
++      get conn, "/test_crash"
++    end
++  end
+ end
+```
+
+Modify the prod config to setup sentry for `:prod` only and use this env.
+
+```diff
+diff --git a/config/prod.exs b/config/prod.exs
+index 52d427b..c0fe5d0 100644
+--- a/config/prod.exs
++++ b/config/prod.exs
+@@ -23,6 +23,14 @@ config :marine_forecast_skill, MarineForecastSkillWeb.Endpoint,
+ # Do not print debug messages in production
+ config :logger, level: :info
+
++config :sentry,
++  dsn: System.get_env("SENTRY_DSN"),
++  environment_name: Mix.env,
++  enable_source_code_context: true,
++  root_source_code_path: File.cwd!,
++  tags: %{},
++  included_environments: [:prod]
++
+ # ## SSL Support
+ #
+ # To get SSL working, you will need to add the `https` key
 ```

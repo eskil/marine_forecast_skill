@@ -20,4 +20,10 @@ defmodule MarineForecastSkillWeb.PageControllerTest do
     conn = get conn, "/contact"
     assert html_response(conn, 200) =~ "Contact"
   end
+
+  test "GET /test_crash", %{conn: conn} do
+    assert_error_sent 500, fn ->
+      get conn, "/test_crash"
+    end
+  end
 end

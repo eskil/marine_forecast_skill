@@ -1,5 +1,7 @@
 defmodule MarineForecastSkillWeb.Router do
   use MarineForecastSkillWeb, :router
+  use Plug.ErrorHandler
+  use Sentry.Plug
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -20,6 +22,7 @@ defmodule MarineForecastSkillWeb.Router do
     get "/privacy", PageController, :privacy
     get "/terms", PageController, :terms
     get "/contact", PageController, :contact
+    get "/test_crash", PageController, :test_crash
   end
 
   # Other scopes may use custom stacks.
