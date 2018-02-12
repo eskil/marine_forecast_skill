@@ -510,3 +510,36 @@ index 52d427b..c0fe5d0 100644
  #
  # To get SSL working, you will need to add the `https` key
 ```
+
+Push to heroku and goto https://<your-app>.herokuapp.com/test_crash,
+you'll get an internal server error and a bit later the error will be
+available in sentry.
+
+
+## Add Alexa deps
+
+We need two libraries for the alexa hookup.
+
+   * [`col/alexa`](https://github.com/col/alexa), support for implementing alexa skills
+   * [`col/alexa_verifier`](https://github.com/col/alexa_verifier), library to verify the cert on requests for you skill
+
+NOTE: `alexa_verifier` from `col` is using an older version of `plug`,
+so I'm using my fork that updates deps for now.
+
+```diff
+diff --git a/mix.exs b/mix.exs
+index de30d26..a9c9694 100644
+--- a/mix.exs
++++ b/mix.exs
+@@ -38,7 +38,9 @@ defmodule MarineForecastSkill.Mixfile do
+       {:phoenix_live_reload, "~> 1.0", only: :dev},
+       {:gettext, "~> 0.11"},
+       {:cowboy, "~> 1.0"},
+-      {:sentry, "~> 6.1.0"}
++      {:sentry, "~> 6.1.0"},
++      {:alexa, github: "col/alexa"},
++      {:alexa_verifier, github: "eskil/alexa_verifier"}
+     ]
+   end
+ end
+```
