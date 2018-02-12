@@ -543,3 +543,37 @@ index de30d26..a9c9694 100644
    end
  end
 ```
+
+## Add the Alexa API route
+
+Now we get to the meat of the matter. We add a pipeline for alexa api
+calls that passes the message through `alexa_verifier` and a route for
+the call itself.
+
+```diff
+diff --git a/lib/marine_forecast_skill_web/router.ex b/lib/marine_forecast_skill_web/router.ex
+index 9c258e0..5c6b78c 100644
+--- a/lib/marine_forecast_skill_web/router.ex
++++ b/lib/marine_forecast_skill_web/router.ex
+@@ -15,6 +15,21 @@ defmodule MarineForecastSkillWeb.Router do
+     plug :accepts, ["json"]
+   end
+
++  pipeline :alexa do
++    plug Plug.Parsers,
++      parsers: [AlexaVerifier.JSONParser],
++      pass: ["*/*"],
++      json_decoder: Poison
++
++    plug AlexaVerifier.Plug
++  end
++
++  scope "/api", MarineForecastSkillWeb.Api, as: :api do
++    pipe_through :alexa
++
++    post "/command", AlexaController, :handle_request
++  end
++
+   scope "/", MarineForecastSkillWeb do
+     pipe_through :browser # Use the default browser stack
+```

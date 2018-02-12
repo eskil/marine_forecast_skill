@@ -15,6 +15,21 @@ defmodule MarineForecastSkillWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :alexa do
+    plug Plug.Parsers,
+      parsers: [AlexaVerifier.JSONParser],
+      pass: ["*/*"],
+      json_decoder: Poison
+
+    plug AlexaVerifier.Plug
+  end
+
+  scope "/api", MarineForecastSkillWeb.Api, as: :api do
+    pipe_through :alexa
+
+    post "/command", AlexaController, :handle_request
+  end
+
   scope "/", MarineForecastSkillWeb do
     pipe_through :browser # Use the default browser stack
 
