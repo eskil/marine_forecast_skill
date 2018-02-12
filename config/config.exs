@@ -16,6 +16,9 @@ config :marine_forecast_skill, MarineForecastSkillWeb.Endpoint,
 config :alexa_verifier,
   verifier_client: AlexaVerifier.VerifierClient
 
+config :marine_forecast_skill,
+  amazon_skill_app_id: "MarineForecastSkill"
+
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",

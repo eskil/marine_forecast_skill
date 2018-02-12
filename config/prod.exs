@@ -23,6 +23,9 @@ config :marine_forecast_skill, MarineForecastSkillWeb.Endpoint,
 # Do not print debug messages in production
 config :logger, level: :info
 
+config :marine_forecast_skill,
+  amazon_skill_app_id: System.get_env("AMAZON_SKILL_APP_ID")
+
 # ## SSL Support
 #
 # To get SSL working, you will need to add the `https` key

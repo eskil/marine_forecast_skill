@@ -467,7 +467,10 @@ index 1b3aa15..dc15c3a 100644
  end
 ```
 
-And no endpoint is complete without a unit-test.
+Note that this will cause a compiler warning because of the obvious
+mismatch. So I suggest only having this while making sure things work
+but then remove it again. And no endpoint is complete without a
+unit-test.
 
 ```diff
 diff --git a/test/marine_forecast_skill_web/controllers/page_controller_test.exs b/test/marine_forecast_skill_web/controllers/page_controller_test.exs
@@ -528,10 +531,20 @@ so I'm using my fork that updates deps for now.
 
 ```diff
 diff --git a/mix.exs b/mix.exs
-index de30d26..a9c9694 100644
+index de30d26..0ea749c 100644
 --- a/mix.exs
 +++ b/mix.exs
-@@ -38,7 +38,9 @@ defmodule MarineForecastSkill.Mixfile do
+@@ -19,7 +19,8 @@ defmodule MarineForecastSkill.Mixfile do
+   def application do
+     [
+       mod: {MarineForecastSkill.Application, []},
+-      extra_applications: [:sentry, :logger, :runtime_tools]
++      extra_applications: [:sentry, :logger, :runtime_tools,
++                           :alexa, :alexa_verifier]
+     ]
+   end
+
+@@ -38,7 +39,9 @@ defmodule MarineForecastSkill.Mixfile do
        {:phoenix_live_reload, "~> 1.0", only: :dev},
        {:gettext, "~> 0.11"},
        {:cowboy, "~> 1.0"},
@@ -542,6 +555,25 @@ index de30d26..a9c9694 100644
      ]
    end
  end
+```
+
+The verifier library needs to be configured.
+
+```diff
+diff --git a/config/config.exs b/config/config.exs
+index 9a4081c..c2024a5 100644
+--- a/config/config.exs
++++ b/config/config.exs
+@@ -13,6 +13,9 @@ config :marine_forecast_skill, MarineForecastSkillWeb.Endpoint,
+   pubsub: [name: MarineForecastSkill.PubSub,
+            adapter: Phoenix.PubSub.PG2]
+
++config :alexa_verifier,
++  verifier_client: AlexaVerifier.VerifierClient
++
+ # Configures Elixir's Logger
+ config :logger, :console,
+   format: "$time $metadata[$level] $message\n",
 ```
 
 ## Add the Alexa API route
@@ -576,4 +608,142 @@ index 9c258e0..5c6b78c 100644
 +
    scope "/", MarineForecastSkillWeb do
      pipe_through :browser # Use the default browser stack
+```
+
+The controller itself is fairly simple. It simply creates an alexa request structure from the http request and a `handle_request` method calls out to the right module to actually handle the intent. We'll define that module afterwards. Define the controller in `lib/marine_forecast_skill_web/controllers/api/alexa_controller.ex`
+
+```elixir
+defmodule MarineForecastSkillWeb.Api.AlexaController do
+  use MarineForecastSkillWeb, :controller
+  require Logger
+
+  def handle_request(conn, params) do
+    alexa_request = Alexa.Request.from_params(params)
+    alexa_response = Alexa.handle_request(alexa_request)
+    Logger.debug "Response = #{Poison.encode!(alexa_response)}"
+    conn = send_resp(conn, 200, Poison.encode!(alexa_response))
+    conn = %{conn | resp_headers: [{"content-type", "application/json"}]}
+    conn
+  end
+end
+```
+
+The connect a request to a handler, elixir alexa library registers a
+module as a handler for an app id. This lets you support multiple
+skills from the same app. So we need to configure an id, and in prod
+use the real one but a mock one in test/dev.
+
+```diff
+diff --git a/config/config.exs b/config/config.exs
+index c2024a5..9d58243 100644
+--- a/config/config.exs
++++ b/config/config.exs
+@@ -16,6 +16,9 @@ config :marine_forecast_skill, MarineForecastSkillWeb.Endpoint,
+ config :alexa_verifier,
+   verifier_client: AlexaVerifier.VerifierClient
+
++config :marine_forecast_skill,
++  amazon_skill_app_id: "MarineForecastSkill"
++
+ # Configures Elixir's Logger
+ config :logger, :console,
+   format: "$time $metadata[$level] $message\n",
+```
+
+and in prod we pull it from an environment variable.
+
+```diff
+diff --git a/config/prod.exs b/config/prod.exs
+index 52d427b..0001d79 100644
+--- a/config/prod.exs
++++ b/config/prod.exs
+@@ -23,6 +23,9 @@ config :marine_forecast_skill, MarineForecastSkillWeb.Endpoint,
+ # Do not print debug messages in production
+ config :logger, level: :info
+
++config :marine_forecast_skill,
++  amazon_skill_app_id: System.get_env("AMAZON_SKILL_APP_ID")
++
+ # ## SSL Support
+ #
+ # To get SSL working, you will need to add the `https` key
+```
+
+In the Amazon developer console, there's the skill ID right under your
+skill name. It looks like `amzn1.ask.skill.<uuid>`. Copy that and
+configure in your runtime environment.
+
+```sh
+heroku config:set AMAZON_SKILL_APP_ID="amzn1.ask.skill.<uuid>"
+```
+
+We put the first simple handler in `lib/marine_forecast_skill/skill.ex`.
+
+```elixir
+defmodule MarineForecastSkill.Skill do
+  use Alexa.Skill, app_id: Application.get_env(:marine_forecast_skill, :amazon_skill_app_id)
+  alias Alexa.{Request, Response}
+
+  def handle_intent("GetForecast", _request, response) do
+    response
+    |> say("This is the marine forecast skill")
+    |> should_end_session(true)
+  end
+end
+```
+
+To get it registered at launch time, we make our application start the
+process as a worker.
+
+```diff
+diff --git a/lib/marine_forecast_skill/application.ex b/lib/marine_forecast_skill/application.ex
+index 6c3563f..fe07ba8 100644
+--- a/lib/marine_forecast_skill/application.ex
++++ b/lib/marine_forecast_skill/application.ex
+@@ -11,7 +11,7 @@ defmodule MarineForecastSkill.Application do
+       # Start the endpoint when the application starts
+       supervisor(MarineForecastSkillWeb.Endpoint, []),
+       # Start your own worker by calling: MarineForecastSkill.Worker.start_link(arg1, arg2, arg3)
+-      # worker(MarineForecastSkill.Worker, [arg1, arg2, arg3]),
++      worker(MarineForecastSkill.Skill, [[app_id: Application.get_env(:river_place_app, :app_id)]]),
+     ]
+
+     # See https://hexdocs.pm/elixir/Supervisor.html
+```
+
+## Testing it locally
+
+You can test call by grabbing a sample json blob from Amazon's
+developer console under the test tab. It lets you enter/dictate an utterance and shows the json blob posted to the configured endpoint.
+
+It can be posted directly to the locally running server. You have to
+renamed the `applicationId` to whatever you configured as app id in
+`config.exs`.
+
+```sh
+curl --request POST \
+  --header "Content-Type: application/json" \
+  --header "Accept: application/json" \
+  --data @misc/sample-request.json \
+  "http://0.0.0.0:4000/api/command"
+```
+
+The response is
+
+```json
+{
+  "version": "1.0",
+  "sessionAttributes": {},
+  "response": {
+    "shouldEndSession": true,
+    "reprompt": null,
+    "outputSpeech": {
+      "type": "PlainText",
+      "text": "This is the marine forecast skill",
+      "ssml": null
+    },
+    "directives": [],
+    "card": null
+  }
+}
 ```

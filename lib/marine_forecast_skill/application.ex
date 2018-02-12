@@ -11,7 +11,7 @@ defmodule MarineForecastSkill.Application do
       # Start the endpoint when the application starts
       supervisor(MarineForecastSkillWeb.Endpoint, []),
       # Start your own worker by calling: MarineForecastSkill.Worker.start_link(arg1, arg2, arg3)
-      # worker(MarineForecastSkill.Worker, [arg1, arg2, arg3]),
+      worker(MarineForecastSkill.Skill, [[app_id: Application.get_env(:river_place_app, :app_id)]]),
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
