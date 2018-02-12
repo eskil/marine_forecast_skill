@@ -787,11 +787,11 @@ So now we're ready and "just" need to write a client that can call
 noaa and parse out the weather data.
 
 NOTE: the code in `deps/alexa/lib/alexa/skill.ex` suggests the skill
-code is 1-1 with the skill process.
+code is 1-1 with the skill process. That might be worth hacking up.
 
 NOTE: I'm now stuck on this, the verifier isn't configured
-properly. Turns out I don't need the verifier, testing works fine with
-it? So let's do some of the diffs without it.
+properly. Turns out I don't need the verifier for testing, it works
+fine without it? But I'm sure it's necessary in prod.
 
 ```
 2018-02-12T06:54:51.545350+00:00 app[web.1]: Request: POST /api/command

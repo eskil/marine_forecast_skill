@@ -20,6 +20,8 @@ defmodule MarineForecastSkillWeb.Router do
       parsers: [AlexaVerifier.JSONParser],
       pass: ["*/*"],
       json_decoder: Poison
+
+    # plug AlexaVerifier.Plug
   end
 
   scope "/api", MarineForecastSkillWeb.Api, as: :api do
