@@ -51,18 +51,53 @@ Example interaction model used here.
         "name": "GetForecast",
         "samples": [
           "ask marine forecast for {day} forecast",
-          "check marine forecast for {day} forecast",
-          "ask marine forecast about {day}"
+          "check marine forecast for {day}",
+          "ask marine forecast about {day}",
+          "ask marine forecast what is {day} forecast"
         ],
         "slots": [
           {
             "name": "day",
-            "type": "AMAZON.DayOfWeek"
+            "type": "AMAZON.DayOfWeek",
+            "samples": [
+              "{day}"
+            ]
           }
         ]
       }
     ],
     "invocationName": "marine forecast"
+  },
+  "prompts": [
+    {
+      "id": "Elicit.Intent-GetForecast.IntentSlot-day",
+      "variations": [
+        {
+          "type": "PlainText",
+          "value": "which day did you want the forecast for?"
+        }
+      ]
+    }
+  ],
+  "dialog": {
+    "intents": [
+      {
+        "name": "GetForecast",
+        "confirmationRequired": false,
+        "prompts": {},
+        "slots": [
+          {
+            "name": "day",
+            "type": "AMAZON.DayOfWeek",
+            "elicitationRequired": true,
+            "confirmationRequired": false,
+            "prompts": {
+              "elicitation": "Elicit.Intent-GetForecast.IntentSlot-day"
+            }
+          }
+        ]
+      }
+    ]
   }
 }
 ```
