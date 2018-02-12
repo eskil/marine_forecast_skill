@@ -13,6 +13,9 @@ config :marine_forecast_skill, MarineForecastSkillWeb.Endpoint,
   pubsub: [name: MarineForecastSkill.PubSub,
            adapter: Phoenix.PubSub.PG2]
 
+config :alexa_verifier,
+  verifier_client: AlexaVerifier.VerifierClient
+
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
