@@ -747,3 +747,24 @@ The response is
   }
 }
 ```
+
+NOTE: the code in `deps/alexa/lib/alexa/skill.ex` suggests the skill
+code is 1-1 with the skill process.
+
+NOTE: I'm now stuck on this, the verifier isn't configured
+properly. Turns out I don't need the verifier, testing works fine with
+it? So let's do some of the diffs without it.
+
+```
+2018-02-12T06:54:51.545350+00:00 app[web.1]: Request: POST /api/command
+2018-02-12T06:54:51.545353+00:00 app[web.1]: ** (exit) an exception was raised:
+2018-02-12T06:54:51.545355+00:00 app[web.1]:     ** (ArgumentError) argument error
+2018-02-12T06:54:51.545358+00:00 app[web.1]:         (alexa_verifier) lib/alexa_verifier/verifier_client.ex:5: AlexaVerifier.VerifierClient.process_url/1
+2018-02-12T06:54:51.545359+00:00 app[web.1]:         (alexa_verifier) lib/alexa_verifier/verifier_client.ex:2: AlexaVerifier.VerifierClient.request/5
+2018-02-12T06:54:51.545361+00:00 app[web.1]:         (alexa_verifier) lib/alexa_verifier/verifier_client.ex:2: AlexaVerifier.VerifierClient.request!/5
+2018-02-12T06:54:51.545363+00:00 app[web.1]:         (alexa_verifier) lib/alexa_verifier/verifier_client.ex:21: AlexaVerifier.VerifierClient.verify/3
+2018-02-12T06:54:51.545365+00:00 app[web.1]:         (alexa_verifier) lib/alexa_verifier/plug.ex:30: AlexaVerifier.Plug.verify_request/2
+2018-02-12T06:54:51.545367+00:00 app[web.1]:         (alexa_verifier) lib/alexa_verifier/plug.ex:1: AlexaVerifier.Plug.plug_builder_call/2
+2018-02-12T06:54:51.545369+00:00 app[web.1]:         (marine_forecast_skill) lib/marine_forecast_skill_web/router.ex:18: MarineForecastSkillWeb.Router.alexa/2
+2018-02-12T06:54:51.545372+00:00 app[web.1]:         (marine_forecast_skill) lib/marine_forecast_skill_web/router.ex:1: anonymous fn/1 in MarineForecastSkillWeb.Router.__match_route__/4
+```
