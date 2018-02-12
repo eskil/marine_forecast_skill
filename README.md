@@ -748,6 +748,9 @@ The response is
 }
 ```
 
+So now we're ready and "just" need to write a client that can call
+noaa and parse out the weather data.
+
 NOTE: the code in `deps/alexa/lib/alexa/skill.ex` suggests the skill
 code is 1-1 with the skill process.
 
